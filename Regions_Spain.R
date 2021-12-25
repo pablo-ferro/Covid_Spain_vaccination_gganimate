@@ -9,8 +9,8 @@ today_date <- format(Sys.time(), "%Y%m%d")
 today_url <- paste0("https://www.mscbs.gob.es/profesionales/saludPublica/ccayes/alertasActual/nCov/documentos/Informe_Comunicacion_",today_date,".ods")
 name_url <- paste0("Informe_Comunicacion_",today_date,".ods")
 
-#today_url <- paste0("https://www.mscbs.gob.es/profesionales/saludPublica/ccayes/alertasActual/nCov/documentos/Informe_Comunicacion_20210901.ods")
-#name_url <- paste0("Informe_Comunicacion_20210901.ods")
+today_url <- paste0("https://www.mscbs.gob.es/profesionales/saludPublica/ccayes/alertasActual/nCov/documentos/Informe_Comunicacion_20211220.ods")
+name_url <- paste0("Informe_Comunicacion_20211220.ods")
 
 download.file(today_url,name_url)
 
@@ -19,8 +19,8 @@ df_spain_1dosis <- read_ods(name_url,3)
 df_spain_2dosis <- read_ods(name_url,4)
 df_spain_1dosis <- df_spain_1dosis[c(1,20)]
 df_spain_2dosis <- df_spain_2dosis[c(1,20)]
-names(df_spain_1dosis)[1:2] <- c("Region","%_vaccinated")
-names(df_spain_2dosis)[1:2] <- c("Region","%_vaccinated")
+names(df_spain_1dosis)[1:2] <- c("Region","perc_vaccinated")
+names(df_spain_2dosis)[1:2] <- c("Region","perc_vaccinated")
 head(df_spain_1dosis)
 #sapply(df_spain_1dosis, class) 
 
@@ -32,9 +32,10 @@ df_spain_2dosis_region <- cbind(Dose = 2, Week=34, df_spain_2dosis_region)
 df_spain <- rbind(df_spain_1dosis_region,df_spain_2dosis_region)
 head(df_spain)
 sapply(df_spain, class) 
-df_spain$`%_vaccinated` <- as.numeric(df_spain$`%_vaccinated`)
-df_spain$`%_vaccinated` <- df_spain$`%_vaccinated`*100
-df_spain$`%_vaccinated` <- round(df_spain$`%_vaccinated`,1)
+df_spain$Dose <- as.factor(df_spain$Dose)
+df_spain$`perc_vaccinated` <- as.numeric(df_spain$`perc_vaccinated`)
+df_spain$`perc_vaccinated` <- df_spain$`perc_vaccinated`*100
+df_spain$`perc_vaccinated` <- round(df_spain$`perc_vaccinated`,1)
 head(df_spain)
 
 
@@ -63,15 +64,37 @@ for (i in today_date_spain) {
 
 
 
-# 3 regions small multiples
-vaccine_stacked_sm <- ggplot(df_spain_age_region, aes(fill=Status, y=Percentage_vac*100, x=Age_Group)) + 
+vaccine_stacked <- ggplot(df_spain, aes(fill=Dose, y=perc_vaccinated, x=Region)) + 
   geom_bar(position=position_dodge(), stat="identity")+
   #geom_text(aes(label = format((Percentage_vac*100), nsmall=1)), vjust = -0.2)+
-  ggtitle("% of Population Vaccinated per Age in Sweden and two largest regions")+
-  xlab("Region and Age range")+
+  ggtitle("% of Population Vaccinated per Region in Spain and two largest regions")+
+  xlab("Region")+
+  geom_text(
+    data=df_spain %>% filter(Dose=="1"), # Filter data first
+    aes(label=perc_vaccinated, vjust = -1, hjust=1.5))+
+  geom_text(
+    data=df_spain %>% filter(Dose=="2"), # Filter data first
+    aes(label=perc_vaccinated, vjust = -0.5, hjust=-0.7))+
+  #geom_label( 
+   # data=df_spain %>% filter(Dose=="2"), # Filter data first
+    #aes(label=perc_vaccinated))+
   ylab("% of population vaccinated")+
   ylim(0, 100)+
-  facet_wrap(~Region) +
+  theme(legend.position = "top")#+
+  #theme(axis.text.x = element_text(angle = 90))
+vaccine_stacked
+ggsave(filename = paste0("Vaccination_stacked_",today_date,".png"), width = 640/72, height = 450/72)
+
+
+# 3 regions small multiples
+vaccine_stacked_sm <- ggplot(df_spain, aes(fill=Dose,y=perc_vaccinated, x=Region)) + 
+  geom_bar(position=position_dodge(), stat="identity")+
+  #geom_text(aes(label = format((Percentage_vac*100), nsmall=1)), vjust = -0.2)+
+  ggtitle("% of Population Vaccinated per Dose in Spain and two largest regions")+
+  xlab("Region and Dose range")+
+  ylab("% of population vaccinated")+
+  ylim(0, 100)+
+  facet_wrap(~Dose) +
   theme(legend.position = "top")+
   theme(axis.text.x = element_text(angle = 90))
 vaccine_stacked_sm
